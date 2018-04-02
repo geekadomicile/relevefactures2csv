@@ -21,8 +21,8 @@ def get_parser():
         description='Extracts and converts client name, address included in a gad-releveFactures-XXX.tex file to a csv (column replaces the traditionnal comma) file.',
         epilog=str(sys.argv[0])+' output.csv input.tex'
         )
-    parser.add_argument('csv', nargs=1, help='writable output csv file')
-    parser.add_argument('tex', nargs='+', help='readable input tex file')
+    parser.add_argument('csv', type=str, nargs=1, help='writable output csv file')
+    parser.add_argument('tex', type=str, nargs='+', help='readable input tex file')
     return parser
 
 def get_flushright(filename):
