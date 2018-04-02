@@ -1,32 +1,44 @@
 #!/usr/bin/env python
+# coordinates2csv.py
+# Created: 2nd april 2018
+
+'''
+This will extract name, address and other contact info
+from a gad-releveFactures-*.tex file and write it to a
+csv file.
+Attention ! A column is used as the separator instead
+of the traditional comma.
+'''
+
+__author__ = 'Yevgueny KASSINE'
+__version__ = '0.1'
 
 import sys, argparse, re, csv
 from TexSoup import TexSoup
 
-parser = argparse.ArgumentParser(
-    description='Extracts and converts client name, address included in a gad-releveFactures-XXX.tex file to a csv file.',
-    epilog=str(sys.argv[0])+' output.csv input.tex'
-    )
-parser.add_argument('csv', nargs='+', help='bar help')
-parser.add_argument('file', nargs='+', help='bar help')
-
-output = parser.parse_args()
+def get_parser():
+    parser = argparse.ArgumentParser(
+        description='Extracts and converts client name, address included in a gad-releveFactures-XXX.tex file to a csv (column replaces the traditionnal comma) file.',
+        epilog=str(sys.argv[0])+' output.csv input.tex'
+        )
+    parser.add_argument('csv', nargs=1, help='writable output csv file')
+    parser.add_argument('tex', nargs='+', help='readable input tex file')
+    return parser
 
 def get_flushright(filename):
-    raw = open(filename)
-    soup = TexSoup(raw.read())
-    raw.close()
+    with open(filename) as raw:
+        soup = TexSoup(raw.read())
 
     flushright = list(
             soup.find_all('flushright')
             )
 
     try:
-        address = flushright[2]
+        res = flushright[2]
     except:
-        address=None
-
-    return address
+        res = None
+    finally:
+        return res
 
 
 def try_get_string(tex):
@@ -129,46 +141,56 @@ def try_get_street(li):
     raise RuntimeError('No street found in ', li)
 
 
-csvfile = open(sys.argv[1], 'w', newline='')
-fieldnames = [
-    'name',
-    'last_name',
-    'company',
-    'street',
-    'zip_code',
-    'city',
-    'country',
-    'phone',
-    'email',
-    'url',
-    ]
-writer = csv.DictWriter(csvfile, delimiter=';' ,fieldnames=fieldnames)
-writer.writeheader()
+def main():
+    '''
+    This will be called if the script is directly invoked.
+    '''
+    parser = get_parser()
+    args = vars(parser.parse_args())
+
+    ofn = args['csv'][0]
+    ifn = args['tex']
+    
+    with open(ofn, 'w', newline='') as csvfile:
+        fieldnames = [
+            'name',
+            'last_name',
+            'company',
+            'street',
+            'zip_code',
+            'city',
+            'country',
+            'phone',
+            'email',
+            'url',
+            ]
+        writer = csv.DictWriter(csvfile, delimiter=';' ,fieldnames=fieldnames)
+        writer.writeheader()
+
+        for filename in ifn:
+            address = get_flushright(filename)
+            if(not address):
+                continue
+            text = list(address.contents)
+
+            text = [try_get_string(t) for t in text]
+            text = [try_strip(t) for t in text]
+            text = [try_normalize(str(t)) for t in text]
+
+            d = {
+                'name'          : try_get_name(text),
+                'last_name'     : try_get_last_name(text),
+                'company'       : try_get_company(text),
+                'street'        : try_get_street(text),
+                'zip_code'      : try_get_zip_code(text),
+                'city'          : try_get_city(text),
+                'country'       : try_get_country(text),
+                'phone'         : try_get_phone(text),
+                'email'         : try_get_email(text),
+                'url'           : 'file://'+filename,
+                }
+            writer.writerow(d)
 
 
-for filename in sys.argv[2:]:
-    address = get_flushright(filename)
-    if(not address):
-        continue
-    text = list(address.contents)
-
-    text = [try_get_string(t) for t in text]
-    text = [try_strip(t) for t in text]
-    text = [try_normalize(str(t)) for t in text]
-
-    d = {
-        'name'          : try_get_name(text),
-        'last_name'     : try_get_last_name(text),
-        'company'       : try_get_company(text),
-        'street'        : try_get_street(text),
-        'zip_code'      : try_get_zip_code(text),
-        'city'          : try_get_city(text),
-        'country'       : try_get_country(text),
-        'phone'         : try_get_phone(text),
-        'email'         : try_get_email(text),
-        'url'           : 'file://'+filename,
-        }
-    print(text)
-    print(d)
-    writer.writerow(d)
-
+if __name__ == '__main__':
+    main()
