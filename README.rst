@@ -28,4 +28,6 @@ Used command-line
         $ git remote add origin https://github.com/geekadomicile/relevefactures2csv.git
         $ git commit -am "Init"
         $ git push -u origin master
+        $ pip install beautifulsoup4
+        $ pip install texsoup
 
